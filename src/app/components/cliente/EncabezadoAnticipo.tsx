@@ -6,7 +6,7 @@ import { CircleAlert, Clock3, HandCoins, Undo2 } from 'lucide-react';
 import Button from '../ui/Button';
 import SelloConfirmacion from './SelloConfirmacion';
 import { consultarEstadoAnticipo, crearPreferenciaAnticipo, type CitaApi, type EstadoPagoAnticipo } from '../../services/citas';
-import { avisoPagoEnSalon, tiempoRestante } from '../../utils/anticipoCita';
+import { avisoPagoEnSalon, limiteAnticipo, tiempoRestante } from '../../utils/anticipoCita';
 import { formatearPrecioMXN } from '../../utils/formatoPrecio';
 import { useAhora } from '../../hooks/useAhora';
 
@@ -61,6 +61,7 @@ export default function EncabezadoAnticipo({ cita, volvioDeMercadoPago }: { cita
   const monto = formatearPrecioMXN(cita.anticipoRequerido ?? 0);
   const restante = tiempoRestante(venceEn, ahora);
   const aTiempo = restante !== '' && restante !== 'vencido';
+  const limite = limiteAnticipo(venceEn, ahora);
 
   if (estado === null && !error) {
     return (
@@ -151,7 +152,7 @@ export default function EncabezadoAnticipo({ cita, volvioDeMercadoPago }: { cita
         )}
       </p>
       <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-fondos-suaves px-4 py-1.5 text-sm font-semibold text-menu-texto-principal">
-        <Clock3 size={15} aria-hidden /> Quedan <span className="mf-cifras">{restante}</span>
+        <Clock3 size={15} aria-hidden /> {limite ?? <>Quedan <span className="mf-cifras">{restante}</span></>}
       </p>
       <div className="mx-auto mt-5 max-w-sm space-y-2">
         <Button fullWidth size="lg" onClick={pagar} disabled={abriendo}>

@@ -1,5 +1,5 @@
 import type { CitaApi } from '../services/citas';
-import { horaEnMexico } from './fechaSoloDia';
+import { diaEnMexico, formatearFechaSoloDia, horaEnMexico } from './fechaSoloDia';
 import { PLAZOS_TERMINOS } from './terminosCondiciones';
 
 /**
@@ -51,6 +51,19 @@ export function avisoPagoEnSalon(venceEn: string | null | undefined): string {
   const hora = horaEnMexico(venceEn);
   const plazo = `${PLAZOS_TERMINOS.minutosAntesPagoSalon} minutos antes de tu cita`;
   return `Paga tu anticipo en el salón ${hora ? `antes de las ${hora} (${plazo})` : `a más tardar ${plazo}`}. También puedes pagarlo en línea.`;
+}
+
+/**
+ * Con 24 horas o más de plazo, la fecha y hora límite en México ("Paga antes del miércoles 28 de octubre,
+ * 11:15 a.m."); con menos, `null` y se muestra la cuenta regresiva de tiempoRestante.
+ */
+export function limiteAnticipo(venceEn: string | null | undefined, ahora: Date = new Date()): string | null {
+  if (!venceEn) return null;
+  const ms = new Date(venceEn).getTime() - ahora.getTime();
+  if (!(ms >= 24 * 60 * 60_000)) return null;
+  const dia = diaEnMexico(venceEn);
+  const fecha = `${formatearFechaSoloDia(dia, { weekday: 'long' })} ${formatearFechaSoloDia(dia, { day: 'numeric', month: 'long' })}`;
+  return `Paga antes del ${fecha}, ${horaEnMexico(venceEn)}`;
 }
 
 /** "1 h 23 min", "12 min", "menos de 1 min" o "vencido". */

@@ -9,7 +9,7 @@ const { get, post, put, patch } = vi.hoisted(() => ({
 vi.mock('../services/client', () => ({ apiClient: { get, post, put, patch, delete: vi.fn() } }));
 vi.mock('../services/config', () => ({ getBackendBaseUrl: () => 'http://api.test' }));
 
-import { accionesAnticipo, avisoPagoEnSalon, estadoAnticipo, INFO_ANTICIPO, pagaEnSalon, reembolsoSaleDeCaja, tiempoRestante } from './anticipoCita';
+import { accionesAnticipo, avisoPagoEnSalon, estadoAnticipo, INFO_ANTICIPO, limiteAnticipo, pagaEnSalon, reembolsoSaleDeCaja, tiempoRestante } from './anticipoCita';
 import { itemsDeVenta, totalesTicket, validarCobro, type LineaCobro } from './cobroPos';
 import { PLAZOS_TERMINOS } from './terminosCondiciones';
 import {
@@ -57,6 +57,19 @@ describe('Estado del anticipo de una cita', () => {
     expect(tiempoRestante(min(12), AHORA)).toBe('12 min');
     expect(tiempoRestante(new Date(AHORA.getTime() + 20_000).toISOString(), AHORA)).toBe('menos de 1 min');
     expect(tiempoRestante(min(-5), AHORA)).toBe('vencido');
+  });
+  it('con menos de 24 horas de plazo no hay fecha límite: sigue la cuenta regresiva', () => {
+    expect(limiteAnticipo(min(83), AHORA)).toBeNull();
+    expect(limiteAnticipo(min(24 * 60 - 1), AHORA)).toBeNull();
+    expect(limiteAnticipo(min(-5), AHORA)).toBeNull();
+    expect(limiteAnticipo(null, AHORA)).toBeNull();
+  });
+  it('con 24 horas o más, la fecha y hora límite en hora de México', () => {
+    // 2026-10-28 17:15 UTC = miércoles 28 de octubre, 11:15 en México (UTC-6).
+    const ahora = new Date('2026-10-26T12:00:00.000Z');
+    expect(limiteAnticipo('2026-10-28T17:15:00.000Z', ahora)).toMatch(/^Paga antes del miércoles 28 de octubre, 11:15\sa\.\s?m\.$/);
+    // Justo 24 horas ya muestra la fecha; de noche en México es todavía el día anterior al día UTC.
+    expect(limiteAnticipo('2026-10-27T03:30:00.000Z', new Date('2026-10-26T03:30:00.000Z'))).toMatch(/^Paga antes del lunes 26 de octubre, 09:30\sp\.\s?m\.$/);
   });
 });
 

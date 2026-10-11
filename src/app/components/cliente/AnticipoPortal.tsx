@@ -5,7 +5,7 @@ import { Clock3 } from 'lucide-react';
 import Badge from '../ui/Badge';
 import Button from '../ui/Button';
 import { crearPreferenciaAnticipo, type CitaApi } from '../../services/citas';
-import { avisoPagoEnSalon, estadoAnticipo, INFO_ANTICIPO, tiempoRestante } from '../../utils/anticipoCita';
+import { avisoPagoEnSalon, estadoAnticipo, INFO_ANTICIPO, limiteAnticipo, tiempoRestante } from '../../utils/anticipoCita';
 import { formatearPrecioMXN } from '../../utils/formatoPrecio';
 import { PLAZOS_TERMINOS } from '../../utils/terminosCondiciones';
 
@@ -44,7 +44,8 @@ export default function AnticipoPortal({ cita, ahora, detalle = false }: { cita:
       </div>
       {pendiente && cita.anticipoVenceEn && (
         <p className="inline-flex items-center gap-1.5 text-xs font-medium text-menu-texto-principal" aria-live="polite">
-          <Clock3 size={13} aria-hidden /> Quedan <span className="mf-cifras">{tiempoRestante(cita.anticipoVenceEn, ahora)}</span>
+          <Clock3 size={13} aria-hidden />{' '}
+          {limiteAnticipo(cita.anticipoVenceEn, ahora) ?? <>Quedan <span className="mf-cifras">{tiempoRestante(cita.anticipoVenceEn, ahora)}</span></>}
         </p>
       )}
       {enSalon && !detalle && <p className="text-xs text-encabezados-alterno">{avisoPagoEnSalon(cita.anticipoVenceEn)}</p>}
