@@ -249,6 +249,10 @@ export default function TerminosYCondicionesPage() {
             caso podrás atenderte por turno en el salón.
           </li>
           <li>
+            Si apartas para pagar en el salón y no llegas a pagar a tiempo sin avisar, tus siguientes citas se
+            apartan pagando el anticipo en línea durante {P.mesesSoloPagoEnLinea} meses.
+          </li>
+          <li>
             Si nosotras tenemos que cancelar tu cita, te devolvemos tu anticipo completo.
           </li>
         </ol>

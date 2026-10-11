@@ -23,6 +23,8 @@ export const PLAZOS_TERMINOS = {
   minutosAntesPagoSalon: 15,
   /** Minutos antes del inicio desde los que la clienta llega a pagar el anticipo en el salón. */
   minutosLlegadaSalon: 20,
+  /** Meses en que, tras no pagar a tiempo un anticipo apartado para el salón sin avisar, las citas solo se apartan pagando en línea. */
+  mesesSoloPagoEnLinea: 6,
   /** Días para preparar un apartado antes de que se cancele. */
   diasApartadoSinPreparar: 3,
   /** Día, desde que el apartado está listo, en que se manda el recordatorio. */
