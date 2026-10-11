@@ -129,3 +129,43 @@ describe('apiClient: los 4xx y la red se conservan', () => {
     expect(replace).not.toHaveBeenCalled();
   });
 });
+
+describe('apiClient: evidencia del 403 antes de mandar a /403', () => {
+  let aviso: ReturnType<typeof vi.spyOn>;
+  beforeEach(() => {
+    vi.stubGlobal('fetch', fetchMock);
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    aviso = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+  afterEach(() => {
+    fetchMock.mockReset();
+    replace.mockReset();
+    vi.restoreAllMocks();
+  });
+
+  it('deja en console.warn la URL, el método y el cuerpo, y luego redirige', async () => {
+    const cuerpo = JSON.stringify({ statusCode: 403, message: 'Falta el permiso pedidos:lectura' });
+    responder(403, cuerpo);
+    await errorDe(apiClient.get('/api/pedidos/7/items', 'http://api.test'));
+    expect(replace).toHaveBeenCalledWith('/403');
+    expect(aviso).toHaveBeenCalledWith('[API 403]', 'GET', 'http://api.test/api/pedidos/7/items', cuerpo);
+    // El aviso se escribe antes de redirigir.
+    expect(aviso.mock.invocationCallOrder[0]).toBeLessThan(replace.mock.invocationCallOrder[0]);
+  });
+
+  it('no deja tokens de la URL en el aviso', async () => {
+    responder(403, '{}');
+    await errorDe(apiClient.post('/api/auth/reset?token=secreto123&paso=2', {}, 'http://api.test'));
+    const [, metodo, urlRegistrada] = aviso.mock.calls[0] as [string, string, string];
+    expect(metodo).toBe('POST');
+    expect(urlRegistrada).not.toContain('secreto123');
+    expect(urlRegistrada).toContain('paso=2');
+  });
+
+  it('con skip403Redirect no redirige ni deja el aviso', async () => {
+    responder(403, '{}');
+    await errorDe(apiClient.get('/api/pedidos/7/items', { customBase: 'http://api.test', skip403Redirect: true }));
+    expect(replace).not.toHaveBeenCalled();
+    expect(aviso).not.toHaveBeenCalledWith('[API 403]', expect.anything(), expect.anything(), expect.anything());
+  });
+});

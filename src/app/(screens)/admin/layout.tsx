@@ -6,6 +6,8 @@ import { hasSession } from '../../utils/security';
 import { api } from '../../services/auth';
 import { isAdminRol, getRolFromUser, rutaPorRol } from '../../utils/adminAuth';
 import PanelVerificando from '../../components/layouts/PanelVerificando';
+import PanelSinVerificar from '../../components/layouts/PanelSinVerificar';
+import { decidirAccesoPanel } from '../../utils/accesoPanel';
 
 /**
  * Guard de acceso para TODO /admin/*. NO renderiza UI (ni sidebar ni ningún
@@ -22,6 +24,9 @@ export default function AdminAccessGuard({ children }: { children: ReactNode }) 
   const router = useRouter();
   const [verificando, setVerificando] = useState(true);
   const [permitido, setPermitido] = useState(false);
+  /** El backend no pudo confirmar el acceso (red, 5xx, 429): se ofrece reintentar, no /403. */
+  const [sinVerificar, setSinVerificar] = useState(false);
+  const [intento, setIntento] = useState(0);
 
   useEffect(() => {
     if (!hasSession()) {
@@ -52,12 +57,23 @@ export default function AdminAccessGuard({ children }: { children: ReactNode }) 
     api
       .getProfile()
       .then((res) => {
-        if (!res.success) {
+        const rol = res.data?.rol ?? getRolFromUser(res.data as unknown as Record<string, unknown>);
+        const accion = decidirAccesoPanel({ resultado: res, rolOk: res.success && isAdminRol(rol) });
+        if (accion === 'login') {
+          router.replace(`/login?returnUrl=${encodeURIComponent(pathname || '/admin')}`);
+          return;
+        }
+        if (accion === 'reintentar') {
+          setSinVerificar(true);
+          setVerificando(false);
+          return;
+        }
+        if (accion === 'denegado' && !res.success) {
+          // 403 del backend: acceso denegado de verdad.
           router.replace('/403');
           return;
         }
-        const rol = res.data?.rol ?? getRolFromUser(res.data as unknown as Record<string, unknown>);
-        if (isAdminRol(rol)) {
+        if (accion === 'permitir') {
           permitir();
           return;
         }
@@ -67,7 +83,17 @@ export default function AdminAccessGuard({ children }: { children: ReactNode }) 
       .catch(() => {
         router.replace(`/login?returnUrl=${encodeURIComponent(pathname || '/admin')}`);
       });
-  }, [pathname, router]);
+  }, [pathname, router, intento]);
+
+  const reintentar = () => {
+    setSinVerificar(false);
+    setVerificando(true);
+    setIntento((n) => n + 1);
+  };
+
+  if (sinVerificar) {
+    return <PanelSinVerificar onReintentar={reintentar} />;
+  }
 
   if (verificando || !permitido) {
     // Loader mínimo mientras verifica el acceso (o mientras se ejecuta la redirección).

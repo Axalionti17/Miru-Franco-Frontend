@@ -10,6 +10,8 @@ import { STAFF_ROLES, getRolFromUser } from '../../utils/adminAuth';
 import { usePermisos, getPermisosFromUser, evaluarPermiso, PERMISOS_COMISIONES } from '../../utils/permisos';
 import PanelShell from './PanelShell';
 import PanelVerificando from './PanelVerificando';
+import PanelSinVerificar from './PanelSinVerificar';
+import { decidirAccesoPanel } from '../../utils/accesoPanel';
 import {
   BrainCircuit,
   CalendarClock,
@@ -117,6 +119,9 @@ export default function OperacionLayout({ children, permisoRequerido }: Operacio
   const router = useRouter();
   const [verificando, setVerificando] = useState(true);
   const [accesoPermitido, setAccesoPermitido] = useState(false);
+  /** El backend no pudo confirmar el acceso (red, 5xx, 429): se ofrece reintentar, no /403. */
+  const [sinVerificar, setSinVerificar] = useState(false);
+  const [intento, setIntento] = useState(0);
   const { tienePermiso } = usePermisos();
 
   useEffect(() => {
@@ -162,14 +167,23 @@ export default function OperacionLayout({ children, permisoRequerido }: Operacio
     api
       .getProfile()
       .then((res) => {
-        if (!res.success) {
-          router.replace('/403');
-          return;
-        }
         const dataRecord = res.data as unknown as Record<string, unknown> | undefined;
         const rolBackend = res.data?.rol ?? getRolFromUser(dataRecord);
         const permisosBackend = getPermisosFromUser(dataRecord);
-        if (rolYPermisoOk(rolBackend, permisosBackend)) {
+        const accion = decidirAccesoPanel({
+          resultado: res,
+          rolOk: res.success && rolYPermisoOk(rolBackend, permisosBackend),
+        });
+        if (accion === 'login') {
+          router.replace(`/login?returnUrl=${encodeURIComponent(pathname || '/operacion')}`);
+          return;
+        }
+        if (accion === 'reintentar') {
+          setSinVerificar(true);
+          setVerificando(false);
+          return;
+        }
+        if (accion === 'permitir') {
           if (res.data && typeof window !== 'undefined' && userJson) {
             const current = JSON.parse(userJson) as Record<string, unknown>;
             localStorage.setItem(
@@ -194,7 +208,17 @@ export default function OperacionLayout({ children, permisoRequerido }: Operacio
       .catch(() => {
         router.replace(`/login?returnUrl=${encodeURIComponent(pathname || '/operacion')}`);
       });
-  }, [pathname, router, permisoRequerido]);
+  }, [pathname, router, permisoRequerido, intento]);
+
+  const reintentar = () => {
+    setSinVerificar(false);
+    setVerificando(true);
+    setIntento((n) => n + 1);
+  };
+
+  if (sinVerificar) {
+    return <PanelSinVerificar onReintentar={reintentar} />;
+  }
 
   if (verificando) {
     return <PanelVerificando detalle="Comprobando sesión y permisos de operación" />;

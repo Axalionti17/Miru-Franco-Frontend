@@ -26,6 +26,20 @@ interface RequestOptions extends RequestInit {
 /** Tercer argumento opcional de post/put/delete cuando no basta con un string `customBase`. */
 export type ApiClientCustomBase = string | { customBase?: string; skipAuth?: boolean; skip500Redirect?: boolean; skip403Redirect?: boolean; skip401Redirect?: boolean };
 
+/** Parámetros de la URL que pueden llevar secretos: su valor no se escribe en la consola. */
+const PARAMETRO_SECRETO = /token|code|secret|password|contrase|key|firma|signature/i;
+
+/** La URL tal cual pero con el valor de los parámetros sensibles oculto, para los avisos de consola. */
+function urlSinSecretos(url: string): string {
+  const [base, query] = url.split('?', 2);
+  if (!query) return url;
+  const partes = query.split('&').map((par) => {
+    const [clave] = par.split('=', 1);
+    return PARAMETRO_SECRETO.test(clave) ? `${clave}=oculto` : par;
+  });
+  return `${base}?${partes.join('&')}`;
+}
+
 class ApiClient {
   private async request<T>(
     endpoint: string,
@@ -216,7 +230,9 @@ class ApiClient {
             }
           }
           
-          throw new Error(message || 'No autorizado. Por favor, inicia sesión nuevamente.');
+          const err401 = new Error(message || 'No autorizado. Por favor, inicia sesión nuevamente.') as ApiError;
+          err401.status = 401;
+          throw err401;
         }
         
         // ✅ Manejar error 403 (Prohibido - cuenta bloqueada o sin permisos)
@@ -238,6 +254,8 @@ class ApiClient {
           err.data = errorData;
           // No redirigir si la petición pidió mostrar el error en la misma página (ej. cambio de rol/estado en admin)
           if (!skip403Redirect && typeof window !== 'undefined') {
+            // Evidencia en producción de qué petición mandó a /403 (sin cabeceras ni tokens de la URL).
+            console.warn('[API 403]', (fetchOptions.method || 'GET').toUpperCase(), urlSinSecretos(url), errorText);
             window.location.replace('/403');
           }
           throw err;

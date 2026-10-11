@@ -606,11 +606,14 @@ export const api = {
   /**
    * Perfil del usuario autenticado (alineado con Prisma `Usuario` + opcional `direcciones`).
    * GET `/api/auth/me` — el backend debe devolver los campos del modelo o un subconjunto.
+   * En un fallo devuelve el `status` HTTP (401, 403, 429, 5xx) para que los layouts distingan
+   * "acceso denegado" de "no se pudo comprobar"; sin `status` = red, CORS o respuesta no reconocida.
    */
   async getProfile(): Promise<{
     success: boolean;
     data?: PerfilUsuarioCompleto;
     error?: string;
+    status?: number;
   }> {
     const BACKEND_BASE = getBackendBaseUrl();
     try {
@@ -623,7 +626,10 @@ export const api = {
     } catch (error) {
       console.error('Error al obtener perfil:', error);
       const errorMessage = error instanceof Error ? error.message : 'Error al obtener perfil';
-      return { success: false, error: errorMessage };
+      const status = (error as { status?: unknown } | null)?.status;
+      return typeof status === 'number'
+        ? { success: false, status, error: errorMessage }
+        : { success: false, error: errorMessage };
     }
   },
 };

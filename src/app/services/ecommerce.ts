@@ -431,8 +431,10 @@ function normalizarPedidoItem(raw: Record<string, unknown>): PedidoItemApi {
   };
 }
 
-export async function listarPedidoItems(pedidoId: number): Promise<PedidoItemApi[]> {
-  const res = await apiClient.get<unknown>(`/api/pedidos/${pedidoId}/items`, BASE());
+export async function listarPedidoItems(pedidoId: number, opts?: OpcionesPortal): Promise<PedidoItemApi[]> {
+  // skip403Redirect: las líneas son una petición secundaria (detalle en un modal, listas de ventas);
+  // un 403 aquí no debe mandar toda la pantalla a /403. Quien llama ya captura el error.
+  const res = await apiClient.get<unknown>(conPropios(`/api/pedidos/${pedidoId}/items`, opts), { customBase: BASE(), skip403Redirect: true });
   return unwrapArray<Record<string, unknown>>(res).map((r) => normalizarPedidoItem(r));
 }
 
@@ -499,8 +501,8 @@ function normalizarPago(raw: Record<string, unknown>): PagoApi {
   };
 }
 
-export async function listarPagosPorPedido(pedidoId: number): Promise<PagoApi[]> {
-  const res = await apiClient.get<unknown>(`/api/pagos/pedido/${pedidoId}`, BASE());
+export async function listarPagosPorPedido(pedidoId: number, opts?: OpcionesPortal): Promise<PagoApi[]> {
+  const res = await apiClient.get<unknown>(conPropios(`/api/pagos/pedido/${pedidoId}`, opts), BASE());
   return unwrapArray<Record<string, unknown>>(res).map((r) => normalizarPago(r));
 }
 
@@ -553,8 +555,8 @@ export interface HistorialEstadoPedidoApi {
   pedidoId: number;
 }
 
-export async function listarHistorialPedido(pedidoId: number): Promise<HistorialEstadoPedidoApi[]> {
-  const res = await apiClient.get<unknown>(`/api/historial-estados-pedido/pedido/${pedidoId}`, BASE());
+export async function listarHistorialPedido(pedidoId: number, opts?: OpcionesPortal): Promise<HistorialEstadoPedidoApi[]> {
+  const res = await apiClient.get<unknown>(conPropios(`/api/historial-estados-pedido/pedido/${pedidoId}`, opts), BASE());
   return unwrapArray<Record<string, unknown>>(res).map((r) => ({
     id: num(r.id),
     estadoAnterior: r.estadoAnterior != null ? str(r.estadoAnterior) : r.estado_anterior != null ? str(r.estado_anterior) : null,
@@ -591,8 +593,8 @@ function normalizarEnvio(raw: Record<string, unknown>): EnvioApi {
   };
 }
 
-export async function listarEnviosPorPedido(pedidoId: number): Promise<EnvioApi[]> {
-  const res = await apiClient.get<unknown>(`/api/envios/pedido/${pedidoId}`, BASE());
+export async function listarEnviosPorPedido(pedidoId: number, opts?: OpcionesPortal): Promise<EnvioApi[]> {
+  const res = await apiClient.get<unknown>(conPropios(`/api/envios/pedido/${pedidoId}`, opts), BASE());
   return unwrapArray<Record<string, unknown>>(res).map((r) => normalizarEnvio(r));
 }
 
@@ -681,8 +683,8 @@ export async function listarFacturas(): Promise<FacturaApi[]> {
   return unwrapArray<Record<string, unknown>>(res).map((r) => normalizarFactura(r));
 }
 
-export async function listarFacturasPorPedido(pedidoId: number): Promise<FacturaApi[]> {
-  const res = await apiClient.get<unknown>(`/api/facturas/pedido/${pedidoId}`, BASE());
+export async function listarFacturasPorPedido(pedidoId: number, opts?: OpcionesPortal): Promise<FacturaApi[]> {
+  const res = await apiClient.get<unknown>(conPropios(`/api/facturas/pedido/${pedidoId}`, opts), BASE());
   return unwrapArray<Record<string, unknown>>(res).map((r) => normalizarFactura(r));
 }
 
@@ -903,8 +905,8 @@ export function varianteBadgeEstadoPago(estado: string): BadgeVariant {
   }
 }
 
-export async function listarValoracionesPedido(pedidoId: number): Promise<ValoracionApi[]> {
-  const res = await apiClient.get<unknown>(`/api/valoraciones/pedido/${pedidoId}`, BASE());
+export async function listarValoracionesPedido(pedidoId: number, opts?: OpcionesPortal): Promise<ValoracionApi[]> {
+  const res = await apiClient.get<unknown>(conPropios(`/api/valoraciones/pedido/${pedidoId}`, opts), BASE());
   return unwrapArray<Record<string, unknown>>(res).map((r) => normalizarValoracion(r));
 }
 

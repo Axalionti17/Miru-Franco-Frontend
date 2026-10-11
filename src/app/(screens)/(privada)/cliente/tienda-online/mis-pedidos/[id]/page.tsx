@@ -11,6 +11,7 @@ import Table, { TableRow, TableCell } from '../../../../../../components/ui/Tabl
 import DatosRecogerEnSalon from '../../../../../../components/tienda/DatosRecogerEnSalon';
 import { showConfirm, showToast } from '../../../../../../utils/toast';
 import { mensajeUsuarioDesdeErrorApi } from '../../../../../../utils/apiErrorMessage';
+import { mensajeErrorDetallePedido } from '../../../../../../utils/detallePedido';
 import { formatearPrecioMXN } from '../../../../../../utils/formatoPrecio';
 import {
   obtenerPedido,
@@ -96,13 +97,14 @@ export default function DetallePedidoPage() {
       try {
         const [p, lineas, env, pays, hist, fac, val, dev] = await Promise.all([
           obtenerPedido(pedidoId, { propios: true }),
-          listarPedidoItems(pedidoId),
-          listarEnviosPorPedido(pedidoId),
-          listarPagosPorPedido(pedidoId),
-          listarHistorialPedido(pedidoId),
-          listarFacturasPorPedido(pedidoId),
-          listarValoracionesPedido(pedidoId),
-          listarDevolucionesPedido(pedidoId),
+          // Portal: todo con propios=true; un pedido ajeno responde 404 en cada petición.
+          listarPedidoItems(pedidoId, { propios: true }),
+          listarEnviosPorPedido(pedidoId, { propios: true }),
+          listarPagosPorPedido(pedidoId, { propios: true }),
+          listarHistorialPedido(pedidoId, { propios: true }),
+          listarFacturasPorPedido(pedidoId, { propios: true }),
+          listarValoracionesPedido(pedidoId, { propios: true }),
+          listarDevolucionesPedido(pedidoId, { propios: true }),
         ]);
         if (cancelled) return;
         setPedido(p);
@@ -115,7 +117,7 @@ export default function DetallePedidoPage() {
         setDevoluciones(dev);
         if (!p) setError('Pedido no encontrado');
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Error al cargar');
+        if (!cancelled) setError(mensajeErrorDetallePedido(e));
       } finally {
         if (!cancelled) setLoading(false);
       }

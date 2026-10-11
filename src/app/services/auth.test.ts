@@ -59,3 +59,55 @@ describe('api.login: cuenta sin activar se decide por el código, no por el text
     await expect(api.login('ana@correo.mx', 'mala')).rejects.toThrow('Credenciales inválidas');
   });
 });
+
+describe('api.getProfile: el status del fallo llega a quien decide (layouts)', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', fetchMock);
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+  afterEach(() => {
+    fetchMock.mockReset();
+    replace.mockReset();
+    almacen.clear();
+    vi.restoreAllMocks();
+  });
+
+  it('200 con el usuario: success sin status', async () => {
+    responder(200, { id: 'u1', email: 'ana@correo.mx', nombre: 'Ana', rol: 'estilista' });
+    const r = await api.getProfile();
+    expect(r.success).toBe(true);
+    expect(r.status).toBeUndefined();
+  });
+
+  it('503 (backend dormido) devuelve status 503', async () => {
+    responder(503, { message: 'Service Unavailable' });
+    const r = await api.getProfile();
+    expect(r).toMatchObject({ success: false, status: 503 });
+  });
+
+  it('429 devuelve status 429', async () => {
+    responder(429, { message: 'Demasiadas peticiones', retryAfter: 30 });
+    const r = await api.getProfile();
+    expect(r).toMatchObject({ success: false, status: 429 });
+  });
+
+  it('403 devuelve status 403', async () => {
+    responder(403, { statusCode: 403, message: 'Acceso denegado' });
+    const r = await api.getProfile();
+    expect(r).toMatchObject({ success: false, status: 403 });
+  });
+
+  it('401 devuelve status 401', async () => {
+    responder(401, { statusCode: 401, message: 'Unauthorized' });
+    const r = await api.getProfile();
+    expect(r).toMatchObject({ success: false, status: 401 });
+  });
+
+  it('un fallo de red no trae status', async () => {
+    fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    const r = await api.getProfile();
+    expect(r.success).toBe(false);
+    expect(r.status).toBeUndefined();
+  });
+});

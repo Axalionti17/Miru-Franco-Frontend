@@ -234,8 +234,8 @@ function ConfirmacionCompraContent() {
       try {
         const [p, lineas, pays] = await Promise.all([
           obtenerPedido(pedidoId, { propios: true }),
-          listarPedidoItems(pedidoId),
-          listarPagosPorPedido(pedidoId),
+          listarPedidoItems(pedidoId, { propios: true }),
+          listarPagosPorPedido(pedidoId, { propios: true }),
         ]);
         if (cancelled) return;
         setPedido(p);

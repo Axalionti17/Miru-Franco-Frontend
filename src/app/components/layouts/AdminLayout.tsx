@@ -10,6 +10,8 @@ import { isAdminRol, getRolFromUser, rutaPorRol } from '../../utils/adminAuth';
 import { usePermisos } from '../../utils/permisos';
 import PanelShell from './PanelShell';
 import PanelVerificando from './PanelVerificando';
+import PanelSinVerificar from './PanelSinVerificar';
+import { decidirAccesoPanel } from '../../utils/accesoPanel';
 import {
   BarChart3,
   Bell,
@@ -131,6 +133,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const [accesoPermitido, setAccesoPermitido] = useState(false);
   const [perfilUsuario, setPerfilUsuario] = useState<PerfilBasico | null>(null);
   const [fotoRota, setFotoRota] = useState(false);
+  /** El backend no pudo confirmar el acceso (red, 5xx, 429): se ofrece reintentar, no /403. */
+  const [sinVerificar, setSinVerificar] = useState(false);
+  const [intento, setIntento] = useState(0);
   const { tienePermiso } = usePermisos();
 
   useEffect(() => {
@@ -178,12 +183,23 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     api
       .getProfile()
       .then((res) => {
-        if (!res.success) {
+        const rolBackend = res.data?.rol ?? getRolFromUser(res.data as unknown as Record<string, unknown>);
+        const accion = decidirAccesoPanel({ resultado: res, rolOk: res.success && isAdminRol(rolBackend) });
+        if (accion === 'login') {
+          router.replace(`/login?returnUrl=${encodeURIComponent(pathname || '/admin')}`);
+          return;
+        }
+        if (accion === 'reintentar') {
+          setSinVerificar(true);
+          setVerificando(false);
+          return;
+        }
+        if (accion === 'denegado' && !res.success) {
+          // 403 del backend: acceso denegado de verdad.
           router.replace('/403');
           return;
         }
-        const rolBackend = res.data?.rol ?? getRolFromUser(res.data as unknown as Record<string, unknown>);
-        if (checkAdminAndAllow(rolBackend)) {
+        if (accion === 'permitir' && checkAdminAndAllow(rolBackend)) {
           if (res.data) {
             setPerfilUsuario({
               nombre: res.data.nombre ?? '',
@@ -214,7 +230,17 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       .catch(() => {
         router.replace(`/login?returnUrl=${encodeURIComponent(pathname || '/admin')}`);
       });
-  }, [pathname, router]);
+  }, [pathname, router, intento]);
+
+  const reintentar = () => {
+    setSinVerificar(false);
+    setVerificando(true);
+    setIntento((n) => n + 1);
+  };
+
+  if (sinVerificar) {
+    return <PanelSinVerificar onReintentar={reintentar} />;
+  }
 
   if (verificando) {
     return <PanelVerificando detalle="Comprobando sesión y permisos de administrador" />;

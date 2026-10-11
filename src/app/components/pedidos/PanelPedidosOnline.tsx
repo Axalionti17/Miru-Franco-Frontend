@@ -52,6 +52,7 @@ import {
 } from '../../utils/flujoPedido';
 import { usePermisos } from '../../utils/permisos';
 import { mensajeUsuarioDesdeErrorApi } from '../../utils/apiErrorMessage';
+import { cargarDetallePedido } from '../../utils/detallePedido';
 
 export type VistaPedidos = 'cobro' | 'recoger';
 
@@ -158,6 +159,8 @@ export default function PanelPedidosOnline({ vista = 'cobro' }: { vista?: VistaP
   const [detalleId, setDetalleId] = useState<number | null>(null);
   const [detallePedido, setDetallePedido] = useState<PedidoApi | null>(null);
   const [detalleItems, setDetalleItems] = useState<PedidoItemApi[]>([]);
+  /** Los productos son una petición secundaria: si fallan, el modal lo dice en su lugar. */
+  const [errorItems, setErrorItems] = useState<string | null>(null);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
   const [estadoSeleccionado, setEstadoSeleccionado] = useState<EstadoPedidoUi>('pendiente_pago');
   const [guardando, setGuardando] = useState(false);
@@ -244,10 +247,12 @@ export default function PanelPedidosOnline({ vista = 'cobro' }: { vista?: VistaP
     setCargandoDetalle(true);
     setDetallePedido(null);
     setDetalleItems([]);
+    setErrorItems(null);
     try {
-      const [pedido, items] = await Promise.all([obtenerPedido(id), listarPedidoItems(id)]);
+      const { pedido, items, errorItems: falloItems } = await cargarDetallePedido(id, { obtenerPedido, listarPedidoItems });
       setDetallePedido(pedido);
       setDetalleItems(items);
+      setErrorItems(falloItems);
       setEstadoSeleccionado((pedido?.estado ?? 'pendiente_pago') as EstadoPedidoUi);
     } catch (e) {
       void showAlert(e instanceof Error ? e.message : 'No se pudo cargar el pedido');
@@ -262,6 +267,7 @@ export default function PanelPedidosOnline({ vista = 'cobro' }: { vista?: VistaP
     setDetalleId(null);
     setDetallePedido(null);
     setDetalleItems([]);
+    setErrorItems(null);
   };
 
   async function cambiarEstado(id: number, estado: EstadoPedidoUi) {
@@ -526,7 +532,9 @@ export default function PanelPedidosOnline({ vista = 'cobro' }: { vista?: VistaP
 
             <div>
               <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--menu-texto-principal)' }}>Productos</h3>
-              {detalleItems.length === 0 ? (
+              {errorItems ? (
+                <p role="alert" className="text-sm" style={{ color: 'var(--danger-texto)' }}>{errorItems}</p>
+              ) : detalleItems.length === 0 ? (
                 <p className="text-sm" style={{ color: 'var(--encabezados-alterno)' }}>Sin líneas registradas.</p>
               ) : (
                 <div className="space-y-2">
