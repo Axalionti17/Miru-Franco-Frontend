@@ -9,7 +9,7 @@ const { get, post, put, patch } = vi.hoisted(() => ({
 vi.mock('../services/client', () => ({ apiClient: { get, post, put, patch, delete: vi.fn() } }));
 vi.mock('../services/config', () => ({ getBackendBaseUrl: () => 'http://api.test' }));
 
-import { accionesAnticipo, estadoAnticipo, INFO_ANTICIPO, reembolsoSaleDeCaja, tiempoRestante } from './anticipoCita';
+import { accionesAnticipo, avisoPagoEnSalon, estadoAnticipo, INFO_ANTICIPO, pagaEnSalon, reembolsoSaleDeCaja, tiempoRestante } from './anticipoCita';
 import { itemsDeVenta, totalesTicket, validarCobro, type LineaCobro } from './cobroPos';
 import { PLAZOS_TERMINOS } from './terminosCondiciones';
 import {
@@ -60,6 +60,23 @@ describe('Estado del anticipo de una cita', () => {
   });
 });
 
+describe('Anticipo que se paga en el salón', () => {
+  it('"paga en salón" solo mientras el anticipo siga sin pagar (pendiente o vencido)', () => {
+    expect(pagaEnSalon(cita({ anticipoEnSalon: true }), AHORA)).toBe(true);
+    expect(pagaEnSalon(cita({ anticipoEnSalon: true, anticipoVenceEn: min(-1) }), AHORA)).toBe(true);
+    expect(pagaEnSalon(cita(), AHORA)).toBe(false);
+    const pagada = cita({ anticipoEnSalon: true, estado: 'confirmada', anticipoPagadoEn: min(-5), pagosAnticipo: [{ id: 1, estado: 'aprobado', monto: 150, metodo: 'efectivo', proveedor: null, pagadoEn: min(-5) }] });
+    expect(pagaEnSalon(pagada, AHORA)).toBe(false);
+  });
+  it('el aviso da la hora límite en hora de México y deja pagar en línea', () => {
+    // 15:45 UTC = 09:45 en México.
+    expect(avisoPagoEnSalon('2026-10-20T15:45:00.000Z')).toMatch(
+      /^Paga tu anticipo en el salón antes de las 09:45\sa\.\s?m\. \(15 minutos antes de tu cita\)\. También puedes pagarlo en línea\.$/,
+    );
+    expect(avisoPagoEnSalon(null)).toBe('Paga tu anticipo en el salón a más tardar 15 minutos antes de tu cita. También puedes pagarlo en línea.');
+  });
+});
+
 describe('Acciones del personal sobre el anticipo', () => {
   const permisos = (claves: string[]) => (c: string | readonly string[] | null | undefined) =>
     !c || claves.includes('*') || (typeof c === 'string' ? claves.includes(c) : c.some((x) => claves.includes(x)));
@@ -107,6 +124,10 @@ describe('Términos: plazo del anticipo', () => {
   it('2 horas, igual que el backend', () => {
     expect(PLAZOS_TERMINOS.horasAnticipoCita).toBe(2);
   });
+  it('en el salón: llegar entre 20 y 15 minutos antes; el pago vence 15 minutos antes', () => {
+    expect(PLAZOS_TERMINOS.minutosLlegadaSalon).toBe(20);
+    expect(PLAZOS_TERMINOS.minutosAntesPagoSalon).toBe(15);
+  });
 });
 
 describe('Servicios de anticipo', () => {
@@ -115,6 +136,14 @@ describe('Servicios de anticipo', () => {
     const { data } = await listarCitas({ propios: true });
     expect(data[0]).toMatchObject({ anticipoRequerido: 150, anticipoVenceEn: min(83), anticipoPagadoEn: null, anticipoPagado: 150 });
     expect(data[0].pagosAnticipo).toHaveLength(2);
+    expect(data[0].anticipoEnSalon).toBe(false);
+  });
+  it('lee anticipoEnSalon de la cita y del estado del anticipo', async () => {
+    get.mockResolvedValueOnce({ data: [{ id: 8, estado: 'pendiente', anticipoRequerido: 150, anticipoVenceEn: min(45), anticipoEnSalon: true }] });
+    const { data } = await listarCitas();
+    expect(data[0].anticipoEnSalon).toBe(true);
+    get.mockResolvedValueOnce({ estado: 'sin_pago', citaEstado: 'pendiente', anticipoRequerido: 150, anticipoVenceEn: min(45), anticipoPagadoEn: null, anticipoEnSalon: true });
+    await expect(consultarEstadoAnticipo(8)).resolves.toMatchObject({ estado: 'sin_pago', anticipoEnSalon: true });
   });
   it('pagar, consultar, registrar, reembolsar, retener, no asistió y configurar usan sus endpoints', async () => {
     await expect(crearPreferenciaAnticipo(7)).resolves.toEqual({ initPoint: 'https://mp.test/pagar' });

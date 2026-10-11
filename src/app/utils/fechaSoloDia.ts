@@ -46,6 +46,17 @@ export function diaEnMexico(instante: string | Date | null | undefined): string 
   return DIA_EN_MEXICO.format(d);
 }
 
+/**
+ * Hora en México de un instante, con el formato de las pantallas de citas ("02:05 p.m."), sea cual
+ * sea la zona del navegador. Cadena vacía si no hay fecha o no es válida.
+ */
+export function horaEnMexico(instante: string | Date | null | undefined): string {
+  if (!instante) return '';
+  const d = instante instanceof Date ? instante : new Date(instante);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', timeZone: ZONA_MEXICO });
+}
+
 /** 'YYYY-MM-DD' de hoy en México (para filtros "de hoy" y valores por defecto de un input date). */
 export function hoyEnMexico(ahora: Date = new Date()): string {
   return DIA_EN_MEXICO.format(ahora);

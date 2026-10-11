@@ -32,6 +32,7 @@ import { listarEmpleados, EmpleadoApi } from '../../../../services/empleados';
 import { usePermisos } from '../../../../utils/permisos';
 import { getServicios, Servicio } from '../../../../services/servicios';
 import { etiquetaEstadoCita, varianteEstadoCita } from '../../../../utils/estados';
+import { PLAZOS_TERMINOS } from '../../../../utils/terminosCondiciones';
 
 /** Combina fecha (YYYY-MM-DD) + hora (HH:mm) en un ISO string. */
 function combinar(fecha: string, hora: string): string {
@@ -92,6 +93,8 @@ export default function GestionCitasPage() {
   const [fNotas, setFNotas] = useState('');
   /** El personal decide si esta cita pide el anticipo del servicio (desde /operacion no se pide solo). */
   const [fPedirAnticipo, setFPedirAnticipo] = useState(false);
+  /** Dónde paga la clienta el anticipo pedido; en mostrador lo normal es el salón. */
+  const [fPagoAnticipo, setFPagoAnticipo] = useState<'salon' | 'linea'>('salon');
 
   // Modal reprogramar
   const [isReprogOpen, setIsReprogOpen] = useState(false);
@@ -182,7 +185,7 @@ export default function GestionCitasPage() {
 
   const resetForm = () => {
     setFClienteId(''); setFEspecialistaId(''); setFServicioId('');
-    setFFecha(''); setFHoraInicio(''); setFHoraFin(''); setFNotas(''); setFPedirAnticipo(false);
+    setFFecha(''); setFHoraInicio(''); setFHoraFin(''); setFNotas(''); setFPedirAnticipo(false); setFPagoAnticipo('salon');
     setFormError(null);
   };
 
@@ -206,7 +209,7 @@ export default function GestionCitasPage() {
         fechaHoraInicio: combinar(fFecha, fHoraInicio),
         fechaHoraFin: combinar(fFecha, fHoraFin),
         notas: fNotas.trim() || undefined,
-        ...(fPedirAnticipo && anticipoServicioForm > 0 ? { pedirAnticipo: true } : {}),
+        ...(fPedirAnticipo && anticipoServicioForm > 0 ? { pedirAnticipo: true, pagoAnticipo: fPagoAnticipo } : {}),
       });
       setIsModalOpen(false);
       resetForm();
@@ -513,9 +516,26 @@ export default function GestionCitasPage() {
               />
               <span>
                 Pedir anticipo de <span className="mf-cifras font-semibold">${anticipoServicioForm.toFixed(2)}</span>
-                <span className="block text-xs text-encabezados-alterno">La clienta tiene 2 horas para pagarlo; si no, la cita se libera.</span>
+                <span className="block text-xs text-encabezados-alterno">Si no se paga a tiempo, la cita se cancela y el horario se libera.</span>
               </span>
             </label>
+          )}
+          {fPedirAnticipo && anticipoServicioForm > 0 && (
+            <Select
+              label="Pago del anticipo:"
+              value={fPagoAnticipo}
+              onChange={(e) => setFPagoAnticipo(e.target.value as 'salon' | 'linea')}
+              options={[
+                { value: 'salon', label: 'En el salón' },
+                { value: 'linea', label: 'En línea' },
+              ]}
+              helperText={
+                fPagoAnticipo === 'salon'
+                  ? `La clienta llega entre ${PLAZOS_TERMINOS.minutosLlegadaSalon} y ${PLAZOS_TERMINOS.minutosAntesPagoSalon} minutos antes y lo paga a más tardar ${PLAZOS_TERMINOS.minutosAntesPagoSalon} minutos antes de la cita.`
+                  : `La clienta tiene ${PLAZOS_TERMINOS.horasAnticipoCita} horas para pagarlo en línea, sin pasar de ${PLAZOS_TERMINOS.minutosAntesPagoSalon} minutos antes de la cita.`
+              }
+              fullWidth
+            />
           )}
         </div>
       </Modal>

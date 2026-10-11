@@ -19,6 +19,10 @@ export const PLAZOS_TERMINOS = {
   horasPagoEnLinea: 24,
   /** Horas para pagar el anticipo de una cita agendada en línea antes de que se libere (HORAS_ANTICIPO_CITA del backend). */
   horasAnticipoCita: 2,
+  /** Minutos antes del inicio en que vence el anticipo: tope del pago en línea y plazo del pago en el salón. */
+  minutosAntesPagoSalon: 15,
+  /** Minutos antes del inicio desde los que la clienta llega a pagar el anticipo en el salón. */
+  minutosLlegadaSalon: 20,
   /** Días para preparar un apartado antes de que se cancele. */
   diasApartadoSinPreparar: 3,
   /** Día, desde que el apartado está listo, en que se manda el recordatorio. */
@@ -26,7 +30,7 @@ export const PLAZOS_TERMINOS = {
   /** Días, desde que el apartado está listo, para recogerlo antes de que se cancele. */
   diasApartadoListo: 7,
   /** Fecha de la última actualización del texto (día de calendario, YYYY-MM-DD). */
-  fechaActualizacion: '2026-10-04',
+  fechaActualizacion: '2026-10-11',
 } as const;
 
 /** "4 de octubre de 2026": la fecha de actualización sin desfase por zona horaria. */

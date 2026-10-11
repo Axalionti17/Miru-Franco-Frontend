@@ -213,10 +213,20 @@ export default function TerminosYCondicionesPage() {
       <Seccion n={6}>
         <ol>
           <li>
-            <strong>Anticipo:</strong> algunas citas requieren un anticipo para quedar confirmadas. Lo puedes
-            pagar en línea con Mercado Pago o en el salón (efectivo, transferencia o tarjeta). Si no se paga en{' '}
-            {P.horasAnticipoCita} horas desde que agendas, la cita se libera y el horario queda disponible. El
-            anticipo se descuenta del total de tu servicio.
+            <strong>Anticipo:</strong> algunas citas requieren un anticipo para quedar confirmadas. El anticipo se
+            descuenta del total de tu servicio. Lo puedes pagar de dos formas:
+            <ul>
+              <li>
+                <strong>En línea</strong> con Mercado Pago: tienes {P.horasAnticipoCita} horas desde que agendas,
+                pero el plazo nunca pasa de {P.minutosAntesPagoSalon} minutos antes de tu cita.
+              </li>
+              <li>
+                <strong>En el salón</strong> (efectivo, transferencia o tarjeta): llega entre{' '}
+                {P.minutosLlegadaSalon} y {P.minutosAntesPagoSalon} minutos antes de tu cita y págalo a más tardar{' '}
+                {P.minutosAntesPagoSalon} minutos antes de que empiece.
+              </li>
+            </ul>
+            Si el anticipo no se paga dentro de su plazo, la cita se cancela y el horario queda disponible.
           </li>
           <li>
             <strong>Confirmación:</strong> te contactaremos un día antes para confirmar tu cita.
@@ -227,16 +237,19 @@ export default function TerminosYCondicionesPage() {
             afectar a las siguientes clientas.
           </li>
           <li>
-            <strong>Cancelar o reagendar:</strong> avísanos lo antes posible. Con aviso previo, puedes reagendar
-            sin costo y tu anticipo se respeta para la nueva fecha.
+            <strong>Reagendar:</strong> avísanos lo antes posible. Con aviso previo, puedes reagendar sin costo y
+            tu anticipo se respeta para la nueva fecha.
           </li>
           <li>
-            Si no llegas y no avisas, el anticipo no es reembolsable y podríamos limitar tus citas en línea. En
-            ese caso podrás atenderte por turno en el salón.
+            <strong>Cancelar:</strong> si cancelas una cita con el anticipo pagado, el anticipo no se devuelve.
+            Si no puedes asistir, te recomendamos reagendar.
           </li>
           <li>
-            Si nosotras tenemos que cancelar tu cita, te ofreceremos una nueva fecha o la devolución íntegra de
-            tu anticipo.
+            Si no llegas y no avisas, el anticipo no se devuelve y podríamos limitar tus citas en línea. En ese
+            caso podrás atenderte por turno en el salón.
+          </li>
+          <li>
+            Si nosotras tenemos que cancelar tu cita, te devolvemos tu anticipo completo.
           </li>
         </ol>
       </Seccion>

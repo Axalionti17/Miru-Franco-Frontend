@@ -1,4 +1,6 @@
 import type { CitaApi } from '../services/citas';
+import { horaEnMexico } from './fechaSoloDia';
+import { PLAZOS_TERMINOS } from './terminosCondiciones';
 
 /**
  * Estado del anticipo de una cita, igual en el portal y en /operacion. Sale de los campos de la cita y de
@@ -35,6 +37,20 @@ export function estadoAnticipo(c: CitaConAnticipo, ahora: Date = new Date()): Es
   if (c.estado === 'cancelada') return 'liberada';
   if (!c.anticipoVenceEn) return 'pendiente';
   return new Date(c.anticipoVenceEn).getTime() > ahora.getTime() ? 'pendiente' : 'vencido';
+}
+
+/** La cita se aparta para pagar el anticipo en el salón y todavía no se paga (pendiente o vencido). */
+export function pagaEnSalon(c: CitaConAnticipo & Pick<CitaApi, 'anticipoEnSalon'>, ahora: Date = new Date()): boolean {
+  if (!c.anticipoEnSalon) return false;
+  const estado = estadoAnticipo(c, ahora);
+  return estado === 'pendiente' || estado === 'vencido';
+}
+
+/** Aviso para la clienta que eligió pagar en el salón; anticipoVenceEn ya es el inicio menos 15 min. */
+export function avisoPagoEnSalon(venceEn: string | null | undefined): string {
+  const hora = horaEnMexico(venceEn);
+  const plazo = `${PLAZOS_TERMINOS.minutosAntesPagoSalon} minutos antes de tu cita`;
+  return `Paga tu anticipo en el salón ${hora ? `antes de las ${hora} (${plazo})` : `a más tardar ${plazo}`}. También puedes pagarlo en línea.`;
 }
 
 /** "1 h 23 min", "12 min", "menos de 1 min" o "vencido". */

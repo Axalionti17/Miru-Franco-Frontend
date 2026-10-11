@@ -6,7 +6,7 @@ import { CircleAlert, Clock3, HandCoins, Undo2 } from 'lucide-react';
 import Button from '../ui/Button';
 import SelloConfirmacion from './SelloConfirmacion';
 import { consultarEstadoAnticipo, crearPreferenciaAnticipo, type CitaApi, type EstadoPagoAnticipo } from '../../services/citas';
-import { tiempoRestante } from '../../utils/anticipoCita';
+import { avisoPagoEnSalon, tiempoRestante } from '../../utils/anticipoCita';
 import { formatearPrecioMXN } from '../../utils/formatoPrecio';
 import { useAhora } from '../../hooks/useAhora';
 
@@ -21,6 +21,8 @@ export default function EncabezadoAnticipo({ cita, volvioDeMercadoPago }: { cita
   const ahora = useAhora(15_000);
   const [estado, setEstado] = useState<EstadoPagoAnticipo | null>(null);
   const [venceEn, setVenceEn] = useState<string | null>(cita.anticipoVenceEn ?? null);
+  /** La clienta eligió pagar en el salón: su plazo vence 15 min antes del inicio. */
+  const [enSalon, setEnSalon] = useState(Boolean(cita.anticipoEnSalon));
   const [abriendo, setAbriendo] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,6 +36,7 @@ export default function EncabezadoAnticipo({ cita, volvioDeMercadoPago }: { cita
           if (!vivo) return;
           setEstado(r.estado);
           setVenceEn(r.anticipoVenceEn);
+          setEnSalon(r.anticipoEnSalon);
           const esperar = r.estado === 'pendiente' || (r.estado === 'sin_pago' && volvioDeMercadoPago);
           if (esperar && Date.now() - inicio < ESPERA_MAXIMA_ESTADO_MS) temporizador = setTimeout(consultar, INTERVALO_ESTADO_MS);
         })
@@ -141,7 +144,11 @@ export default function EncabezadoAnticipo({ cita, volvioDeMercadoPago }: { cita
       <h1 className="mf-titulo-pagina mb-2 text-menu-texto-principal">Tu horario está apartado</h1>
       <p className="text-lg text-encabezados-alterno">
         {estado === 'rechazado' ? 'Tu pago no se completó. ' : ''}
-        Paga el anticipo de <span className="mf-cifras font-semibold text-menu-texto-principal">{monto}</span> para confirmar tu cita.
+        {enSalon ? (
+          avisoPagoEnSalon(venceEn)
+        ) : (
+          <>Paga el anticipo de <span className="mf-cifras font-semibold text-menu-texto-principal">{monto}</span> para confirmar tu cita.</>
+        )}
       </p>
       <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-fondos-suaves px-4 py-1.5 text-sm font-semibold text-menu-texto-principal">
         <Clock3 size={15} aria-hidden /> Quedan <span className="mf-cifras">{restante}</span>
@@ -150,7 +157,7 @@ export default function EncabezadoAnticipo({ cita, volvioDeMercadoPago }: { cita
         <Button fullWidth size="lg" onClick={pagar} disabled={abriendo}>
           {abriendo ? 'Abriendo Mercado Pago…' : 'Pagar anticipo con Mercado Pago'}
         </Button>
-        <p className="text-sm text-encabezados-alterno">También puedes pagarlo en el salón antes de que venza el plazo.</p>
+        {!enSalon && <p className="text-sm text-encabezados-alterno">También puedes pagarlo en el salón antes de que venza el plazo.</p>}
       </div>
       {error && <p role="alert" className="mt-3 text-sm font-medium text-[var(--danger-texto)]">{error}</p>}
     </div>

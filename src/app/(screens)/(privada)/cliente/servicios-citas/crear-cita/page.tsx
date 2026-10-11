@@ -82,6 +82,8 @@ function CrearCitaContent() {
         fechaHoraInicio: inicio!,
         fechaHoraFin: fin!,
         notas: notas || undefined,
+        // Con anticipo, el backend fija el plazo según dónde se paga (en el salón vence 15 min antes del inicio).
+        ...(anticipo > 0 ? { pagoAnticipo: pagarEnSalon ? 'salon' as const : 'linea' as const } : {}),
       }, { propios: true });
       if ((cita.anticipoRequerido ?? 0) > 0 && !pagarEnSalon) {
         try {
@@ -240,7 +242,8 @@ function CrearCitaContent() {
                           <p className="mf-cifras text-xl font-bold text-menu-texto-principal">{formatearPrecioMXN(anticipo)}</p>
                         </div>
                         <p className="mt-2 text-sm text-encabezados-alterno">
-                          Tienes {PLAZOS_TERMINOS.horasAnticipoCita} horas para pagarlo; si no, el horario se libera.
+                          En línea tienes {PLAZOS_TERMINOS.horasAnticipoCita} horas para pagarlo, sin pasar de{' '}
+                          {PLAZOS_TERMINOS.minutosAntesPagoSalon} minutos antes de tu cita; si no, el horario se libera.
                           Se descuenta del total el día de tu cita.
                         </p>
                       </div>
@@ -264,9 +267,15 @@ function CrearCitaContent() {
                       </span>
                     </Button>
                     {anticipo > 0 && (
-                      <Button type="submit" value="salon" onClick={() => { modoPago.current = 'salon'; }} variant="outline" fullWidth disabled={!!enviando || datosIncompletos}>
-                        {enviando === 'salon' ? 'Apartando…' : 'Apartar y pagar en el salón'}
-                      </Button>
+                      <div className="space-y-2">
+                        <Button type="submit" value="salon" onClick={() => { modoPago.current = 'salon'; }} variant="outline" fullWidth disabled={!!enviando || datosIncompletos}>
+                          {enviando === 'salon' ? 'Apartando…' : 'Apartar y pagar en el salón'}
+                        </Button>
+                        <p className="text-sm text-encabezados-alterno">
+                          Llega entre {PLAZOS_TERMINOS.minutosLlegadaSalon} y {PLAZOS_TERMINOS.minutosAntesPagoSalon} minutos antes
+                          para pagarlo. Si a {PLAZOS_TERMINOS.minutosAntesPagoSalon} minutos de tu cita no se ha pagado, se cancela.
+                        </p>
+                      </div>
                     )}
                   </div>
                 )}

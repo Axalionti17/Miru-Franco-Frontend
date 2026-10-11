@@ -5,7 +5,7 @@ import { Clock3 } from 'lucide-react';
 import Badge from '../ui/Badge';
 import Button from '../ui/Button';
 import { crearPreferenciaAnticipo, type CitaApi } from '../../services/citas';
-import { estadoAnticipo, INFO_ANTICIPO, tiempoRestante } from '../../utils/anticipoCita';
+import { avisoPagoEnSalon, estadoAnticipo, INFO_ANTICIPO, tiempoRestante } from '../../utils/anticipoCita';
 import { formatearPrecioMXN } from '../../utils/formatoPrecio';
 import { PLAZOS_TERMINOS } from '../../utils/terminosCondiciones';
 
@@ -21,6 +21,8 @@ export default function AnticipoPortal({ cita, ahora, detalle = false }: { cita:
 
   const info = INFO_ANTICIPO[estado];
   const pendiente = estado === 'pendiente';
+  /** Eligió pagar en el salón: se le recuerda la hora límite (15 min antes de la cita). */
+  const enSalon = pendiente && Boolean(cita.anticipoEnSalon);
 
   const pagar = async () => {
     setAbriendo(true);
@@ -45,9 +47,12 @@ export default function AnticipoPortal({ cita, ahora, detalle = false }: { cita:
           <Clock3 size={13} aria-hidden /> Quedan <span className="mf-cifras">{tiempoRestante(cita.anticipoVenceEn, ahora)}</span>
         </p>
       )}
+      {enSalon && !detalle && <p className="text-xs text-encabezados-alterno">{avisoPagoEnSalon(cita.anticipoVenceEn)}</p>}
       {detalle && (
         <p className="text-sm text-encabezados-alterno">
-          {pendiente
+          {enSalon
+            ? avisoPagoEnSalon(cita.anticipoVenceEn)
+            : pendiente
             ? `Págalo en línea o en el salón. Si no se paga en ${PLAZOS_TERMINOS.horasAnticipoCita} horas, el horario se libera.`
             : estado === 'pagado'
               ? 'Se descuenta del total el día de tu cita.'

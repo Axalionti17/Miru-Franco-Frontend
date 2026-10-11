@@ -7,12 +7,15 @@ import Button from '../ui/Button';
 import Modal from '../ui/Modal';
 import Select from '../ui/Select';
 import { marcarNoAsistio, reembolsarAnticipo, registrarAnticipo, retenerAnticipo, type CitaApi } from '../../services/citas';
-import { accionesAnticipo, estadoAnticipo, INFO_ANTICIPO, reembolsoSaleDeCaja, tiempoRestante } from '../../utils/anticipoCita';
+import { accionesAnticipo, estadoAnticipo, INFO_ANTICIPO, pagaEnSalon, reembolsoSaleDeCaja, tiempoRestante } from '../../utils/anticipoCita';
 import { fmtMoneda } from '../../utils/cobroPos';
 import { usePermisos } from '../../utils/permisos';
 import { showToast } from '../../utils/toast';
 
-/** Badge del anticipo con el monto y, si está pendiente, el tiempo que queda. Nada si la cita no pide anticipo. */
+/**
+ * Badge del anticipo con el monto y, si está pendiente, el tiempo que queda. Nada si la cita no pide anticipo.
+ * "Paga en salón" avisa que la clienta llega a pagarlo (vence 15 min antes del inicio).
+ */
 export function IndicadorAnticipo({ cita, ahora }: { cita: CitaApi; ahora: Date }) {
   const estado = estadoAnticipo(cita, ahora);
   if (estado === 'no_requiere') return null;
@@ -20,6 +23,7 @@ export function IndicadorAnticipo({ cita, ahora }: { cita: CitaApi; ahora: Date 
   return (
     <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
       <Badge variant={info.variante} size="sm">{info.etiqueta}</Badge>
+      {pagaEnSalon(cita, ahora) && <Badge variant="info" size="sm">Paga en salón</Badge>}
       <span className="text-xs text-encabezados-alterno mf-cifras">
         {fmtMoneda(cita.anticipoRequerido ?? 0)}
         {estado === 'pendiente' && cita.anticipoVenceEn ? ` · quedan ${tiempoRestante(cita.anticipoVenceEn, ahora)}` : ''}

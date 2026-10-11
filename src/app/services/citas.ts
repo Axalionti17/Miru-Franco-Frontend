@@ -42,6 +42,8 @@ export interface CitaApi {
   pagosAnticipo?: PagoAnticipoApi[];
   /** Suma de los pagos aprobados: lo que el POS descuenta del servicio. */
   anticipoPagado?: number;
+  /** El anticipo se paga en el salón: su plazo (anticipoVenceEn) es el inicio menos 15 min. */
+  anticipoEnSalon?: boolean;
 }
 
 export interface PagoAnticipoApi {
@@ -64,6 +66,8 @@ export interface CrearCitaPayload {
   notas?: string;
   /** Desde /operacion: pedir el anticipo del servicio (en el portal se pide siempre que el servicio lo tenga). */
   pedirAnticipo?: boolean;
+  /** Dónde se paga el anticipo; el backend asume 'linea' si no se manda. */
+  pagoAnticipo?: 'linea' | 'salon';
 }
 
 export type NivelRiesgoCancelacion = 'bajo' | 'medio' | 'alto';
@@ -156,6 +160,7 @@ function anticipoDe(r: Record<string, unknown>) {
     anticipoPagadoEn: s(r.anticipoPagadoEn ?? r.anticipo_pagado_en) || null,
     pagosAnticipo,
     anticipoPagado,
+    anticipoEnSalon: Boolean(r.anticipoEnSalon ?? r.anticipo_en_salon),
   };
 }
 
@@ -539,6 +544,7 @@ export async function consultarEstadoAnticipo(citaId: number): Promise<{
   anticipoRequerido: number | null;
   anticipoVenceEn: string | null;
   anticipoPagadoEn: string | null;
+  anticipoEnSalon: boolean;
 }> {
   const r = (await apiClient.get<Record<string, unknown>>(`/api/pagos-en-linea/citas/${citaId}/estado`, { customBase: getBackendBaseUrl() })) ?? {};
   return {
@@ -547,6 +553,7 @@ export async function consultarEstadoAnticipo(citaId: number): Promise<{
     anticipoRequerido: r.anticipoRequerido == null ? null : Number(r.anticipoRequerido),
     anticipoVenceEn: s(r.anticipoVenceEn) || null,
     anticipoPagadoEn: s(r.anticipoPagadoEn) || null,
+    anticipoEnSalon: Boolean(r.anticipoEnSalon),
   };
 }
 

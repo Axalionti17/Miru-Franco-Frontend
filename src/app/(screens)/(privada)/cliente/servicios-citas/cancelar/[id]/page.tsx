@@ -9,6 +9,8 @@ import Button from '../../../../../../components/ui/Button';
 import Card from '../../../../../../components/ui/Card';
 import Textarea from '../../../../../../components/ui/Textarea';
 import { obtenerCita, cancelarCita, type CitaApi } from '../../../../../../services/citas';
+import { estadoAnticipo } from '../../../../../../utils/anticipoCita';
+import { formatearPrecioMXN } from '../../../../../../utils/formatoPrecio';
 
 const TZ_MEXICO = 'America/Mexico_City';
 
@@ -112,6 +114,9 @@ export default function CancelarCitaPage() {
     minute: '2-digit',
     timeZone: TZ_MEXICO,
   });
+  // Si la clienta cancela con el anticipo pagado, el salón lo retiene (términos, sección 6).
+  const anticipoPagado = estadoAnticipo(cita) === 'pagado';
+  const avisoAnticipo = `El anticipo de ${formatearPrecioMXN(cita.anticipoRequerido ?? 0)} que pagaste no se devuelve si cancelas.`;
 
   if (mostrarConfirmacion) {
     return (
@@ -137,6 +142,11 @@ export default function CancelarCitaPage() {
               >
                 Esta acción no se puede deshacer
               </p>
+              {anticipoPagado && (
+                <p className="mt-2 text-sm font-medium" style={{ color: 'var(--menu-texto-principal)' }}>
+                  {avisoAnticipo}
+                </p>
+              )}
             </div>
 
             <div
@@ -259,9 +269,18 @@ export default function CancelarCitaPage() {
                 style={{ backgroundColor: 'var(--fondos-suaves)' }}
               >
                 <p className="text-sm" style={{ color: 'var(--encabezados-alterno)' }}>
-                  <strong>Importante:</strong> Si cancelas con menos de 24 horas de anticipación,
-                  puede aplicarse una política de cancelación. Te recomendamos reprogramar tu cita
-                  en lugar de cancelarla.
+                  {anticipoPagado ? (
+                    <>
+                      <strong>Importante:</strong> {avisoAnticipo} Si reprogramas tu cita con aviso, tu anticipo se
+                      respeta para la nueva fecha.
+                    </>
+                  ) : (
+                    <>
+                      <strong>Importante:</strong> Si cancelas con menos de 24 horas de anticipación,
+                      puede aplicarse una política de cancelación. Te recomendamos reprogramar tu cita
+                      en lugar de cancelarla.
+                    </>
+                  )}
                 </p>
               </div>
             </div>

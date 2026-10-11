@@ -4,6 +4,7 @@ import {
   diaEnMexico,
   diasHastaFechaSoloDia,
   formatearFechaSoloDia,
+  horaEnMexico,
   hoyEnMexico,
   mesActualEnMexico,
   mismoDiaHaceAnios,
@@ -99,5 +100,17 @@ describe('anioEnMexico', () => {
     // 31 de diciembre a las 20:00 en México = 1 de enero 02:00 UTC.
     expect(anioEnMexico(new Date('2027-01-01T02:00:00Z'))).toBe(2026);
     expect(anioEnMexico(new Date('2027-01-01T07:00:00Z'))).toBe(2027);
+  });
+});
+
+describe('horaEnMexico', () => {
+  it('da la hora de México, no la UTC ni la del navegador', () => {
+    // 20:05 UTC = 14:05 en México.
+    expect(horaEnMexico('2026-10-11T20:05:00Z')).toMatch(/^02:05\sp\.\s?m\.$/);
+    expect(horaEnMexico(new Date('2026-10-11T15:45:00Z'))).toMatch(/^09:45\sa\.\s?m\.$/);
+  });
+  it('sin fecha o con una inválida devuelve cadena vacía', () => {
+    expect(horaEnMexico(null)).toBe('');
+    expect(horaEnMexico('no es fecha')).toBe('');
   });
 });
