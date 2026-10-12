@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, ArrowRight, Star, Store } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Info, Star, Store } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import ModuleLayout from '../../../../../../components/layouts/ModuleLayout';
 import Button from '../../../../../../components/ui/Button';
@@ -11,7 +11,11 @@ import Table, { TableRow, TableCell } from '../../../../../../components/ui/Tabl
 import DatosRecogerEnSalon from '../../../../../../components/tienda/DatosRecogerEnSalon';
 import { showConfirm, showToast } from '../../../../../../utils/toast';
 import { mensajeUsuarioDesdeErrorApi } from '../../../../../../utils/apiErrorMessage';
-import { mensajeErrorDetallePedido } from '../../../../../../utils/detallePedido';
+import {
+  mensajeErrorDetallePedido,
+  resultadoCancelacion,
+  textoConfirmarCancelacion,
+} from '../../../../../../utils/detallePedido';
 import { formatearPrecioMXN } from '../../../../../../utils/formatoPrecio';
 import {
   obtenerPedido,
@@ -22,7 +26,7 @@ import {
   listarFacturasPorPedido,
   listarValoracionesPedido,
   listarDevolucionesPedido,
-  actualizarPedido,
+  cancelarPedidoPropio,
   esPagoEnSalon,
   METODO_PAGO_MERCADOPAGO,
   etiquetaEstadoPedido,
@@ -38,6 +42,7 @@ import type {
   FacturaApi,
   ValoracionApi,
   DevolucionApi,
+  ReembolsoCancelacionApi,
 } from '../../../../../../services/ecommerce';
 
 /** Qué sigue para la clienta según el estado del pedido (todo se recoge en el salón). */
@@ -85,6 +90,8 @@ export default function DetallePedidoPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cancelando, setCancelando] = useState(false);
+  // Devolución del pago al cancelar un pedido pagado en línea: se deja visible mientras siga en la página.
+  const [reembolso, setReembolso] = useState<ReembolsoCancelacionApi | null>(null);
 
   useEffect(() => {
     if (!Number.isFinite(pedidoId)) {
@@ -168,14 +175,17 @@ export default function DetallePedidoPage() {
 
   const cancelarPedido = async () => {
     const ok = await showConfirm(
-      'Se cancela tu pedido y los productos vuelven a la tienda. Esta acción no se puede deshacer.',
+      textoConfirmarCancelacion(pedido),
       { title: `¿Cancelar el pedido #${pedido.id}?`, confirmText: 'Sí, cancelar pedido', cancelText: 'No, conservarlo' }
     );
     if (!ok) return;
     setCancelando(true);
     try {
-      setPedido(await actualizarPedido(pedido.id, { estado: 'cancelado' }, { propios: true }));
-      showToast('Tu pedido quedó cancelado.', 'success');
+      const r = await cancelarPedidoPropio(pedido.id);
+      setPedido(r.pedido);
+      setReembolso(r.reembolso);
+      const { mensaje, tipo } = resultadoCancelacion(r.reembolso);
+      showToast(mensaje, tipo, r.reembolso ? 8000 : undefined);
     } catch (e) {
       showToast(mensajeUsuarioDesdeErrorApi(e), 'error');
     } finally {
@@ -215,6 +225,26 @@ export default function DetallePedidoPage() {
             )}
           </div>
         </div>
+
+        {reembolso && (
+          <Card padding="md" className="mb-6" role="status" aria-live="polite">
+            <p className="flex items-start gap-2 text-sm font-medium" style={{ color: 'var(--menu-texto-principal)' }}>
+              {reembolso.estado === 'reembolsado' ? (
+                <Check size={18} aria-hidden className="mt-0.5 shrink-0" style={{ color: 'var(--success-texto)' }} />
+              ) : (
+                <Info size={18} aria-hidden className="mt-0.5 shrink-0" style={{ color: 'var(--warning-texto)' }} />
+              )}
+              <span>
+                {resultadoCancelacion(reembolso).mensaje}
+                {reembolso.monto > 0 && (
+                  <span className="block mt-1" style={{ color: 'var(--encabezados-alterno)' }}>
+                    Monto: {formatearPrecioMXN(reembolso.monto)}
+                  </span>
+                )}
+              </span>
+            </p>
+          </Card>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">

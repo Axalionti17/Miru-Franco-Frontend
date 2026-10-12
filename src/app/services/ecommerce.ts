@@ -399,6 +399,27 @@ export async function actualizarPedido(id: number, payload: ActualizarPedidoPayl
   throw new Error('No se pudo actualizar el pedido');
 }
 
+/** Devolución del pago en línea cuando la clienta cancela un pedido pagado. 'en_revision': falló la automática y la hace el personal. */
+export interface ReembolsoCancelacionApi {
+  estado: 'reembolsado' | 'en_revision';
+  monto: number;
+}
+
+function normalizarReembolso(raw: unknown): ReembolsoCancelacionApi | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const o = raw as Record<string, unknown>;
+  if (o.estado !== 'reembolsado' && o.estado !== 'en_revision') return null;
+  return { estado: o.estado, monto: num(o.monto) };
+}
+
+/** Portal: la clienta cancela su pedido. Si estaba pagado en línea, el servidor responde también `reembolso`. */
+export async function cancelarPedidoPropio(id: number): Promise<{ pedido: PedidoApi; reembolso: ReembolsoCancelacionApi | null }> {
+  const res = await apiClient.put<unknown>(conPropios(`/api/pedidos/${id}`, { propios: true }), { estado: 'cancelado' }, BASE());
+  const o = unwrapObject<Record<string, unknown>>(res);
+  if (!o || o.id == null) throw new Error('No se pudo cancelar el pedido');
+  return { pedido: normalizarPedido(o), reembolso: normalizarReembolso((res as Record<string, unknown>).reembolso) };
+}
+
 export async function eliminarPedido(id: number): Promise<void> {
   await apiClient.delete<void>(`/api/pedidos/${id}`, BASE());
 }

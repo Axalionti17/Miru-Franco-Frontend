@@ -199,8 +199,13 @@ export default function TerminosYCondicionesPage() {
               <li>el producto tiene un defecto de fábrica o llegó en mal estado;</li>
               <li>te entregamos un producto distinto al que pediste;</li>
               <li>cancelamos tu pedido por falta de existencias o por causas nuestras;</li>
-              <li>cancelas un pedido pagado en línea antes de que esté listo para recoger.</li>
+              <li>cancelas un pedido pagado en línea antes de que lo empecemos a preparar.</li>
             </ul>
+          </li>
+          <li>
+            <strong>Cancelar un pedido pagado en línea:</strong> si cancelas tu pedido antes de que lo empecemos a
+            preparar, te devolvemos el pago completo al mismo medio con el que pagaste. Puede tardar unos días en
+            reflejarse, según tu banco.
           </li>
           <li>
             Los reembolsos de pagos en línea se hacen por Mercado Pago, al mismo medio con el que pagaste. El

@@ -9,7 +9,7 @@ const { get, post, put, patch } = vi.hoisted(() => ({
 vi.mock('./client', () => ({ apiClient: { get, post, put, patch, delete: vi.fn() } }));
 vi.mock('./config', () => ({ getBackendBaseUrl: () => 'http://api.test' }));
 
-import { actualizarPedido, crearPedido, listarPedidos, listarPedidosQueIncluyenProducto, obtenerPedido } from './ecommerce';
+import { actualizarPedido, cancelarPedidoPropio, crearPedido, listarPedidos, listarPedidosQueIncluyenProducto, obtenerPedido } from './ecommerce';
 import { cancelarCita, crearCita, listarCitas, obtenerCita, reprogramarCita } from './citas';
 
 afterEach(() => { get.mockClear(); post.mockClear(); put.mockClear(); patch.mockClear(); });
@@ -29,6 +29,17 @@ describe('Pedidos del portal (propios)', () => {
     expect(put.mock.calls[0][0]).toBe('/api/pedidos/5?propios=true');
     await crearPedido({ items: [] } as never, { propios: true });
     expect(post.mock.calls[0][0]).toBe('/api/pedidos?propios=true');
+  });
+
+  it('cancelar desde el portal devuelve el pedido y el reembolso si el servidor lo manda', async () => {
+    put.mockResolvedValueOnce({ success: true, data: { id: 5, estado: 'cancelado' }, reembolso: { estado: 'en_revision', monto: '450.00' } });
+    const r = await cancelarPedidoPropio(5);
+    expect(put.mock.calls[0][0]).toBe('/api/pedidos/5?propios=true');
+    expect(put.mock.calls[0][1]).toEqual({ estado: 'cancelado' });
+    expect(r.pedido.estado).toBe('cancelado');
+    expect(r.reembolso).toEqual({ estado: 'en_revision', monto: 450 });
+    put.mockResolvedValueOnce({ success: true, data: { id: 6, estado: 'cancelado' } });
+    expect((await cancelarPedidoPropio(6)).reembolso).toBeNull();
   });
 
   it('los paneles siguen llamando sin propios', async () => {
